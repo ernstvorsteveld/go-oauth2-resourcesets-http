@@ -1,0 +1,14 @@
+{
+    "routes": [
+        {
+            "path" : "/api/scopes",
+            "methods": ["GET"],
+            "handler" : "GET_SCOPES"
+        },
+        {
+            "path" : "/api/scopes",
+            "methods" : ["POST"],
+            "handler" : "POST_SCOPES"
+        }
+    ]
+}

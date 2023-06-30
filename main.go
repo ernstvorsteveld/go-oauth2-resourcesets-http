@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -10,42 +9,45 @@ import (
 
 // HTTPHandler contains the beans
 type HTTPHandler struct {
-	sdu scopes.ScopeDescriptionUseCase
-}
-
-// IndexHandler handles index.html
-func (h *HTTPHandler) IndexHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Index handler")
-	w.Write([]byte("index handler\n"))
-}
-
-// APIHandler handles all REST Api calls
-func (h *HTTPHandler) APIHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("API handler")
-	if r.Method == "GET" {
-		// scope, error := h.sdu.Get(*r.URL)
-		// if error != nil {
-		// 	http.Error(w, "Scope does not exist", http.StatusNotFound)
-		// }
-		// js, _ := json.Marshal(scope)
-		// w.Write(js)
-	} else if r.Method == "POST" {
-		s := scopes.Scope{}
-		json.NewDecoder(r.Body).Decode(&s)
-		w.Write([]byte("POST on /api\n"))
-	} else {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-	}
+	sdu    scopes.ScopeDescriptionUseCase
+	routes *Routes
 }
 
 func dispatch() {
+	routes, error := configureRoutes()
+	if error != nil {
+		panic(error)
+	}
 	var httpHandler = HTTPHandler{
 		sdu: scopes.ScopeDescriptionUseCase{
 			ScopeDb: scopes.NewInMemoryDB(),
 		},
+		routes: routes,
 	}
+
 	http.HandleFunc("/", httpHandler.IndexHandler)
 	http.HandleFunc("/api/", httpHandler.APIHandler)
+}
+
+func configureRoutes() (*Routes, error) {
+	filename := "./config/routes.json"
+	frl := FileRoutesLoader{
+		filename: filename,
+	}
+
+	routes, error := frl.LoadRoutes()
+	if error != nil {
+		return nil, error
+	}
+
+	for _, element := range routes.Routes {
+		http.HandlerFunc(element.Path, getHandler(element.Handler))
+	}
+	return routes, nil
+}
+
+func getHandler(name string) (*func(w http.ResponseWriter, r *http.Request), error) {
+
 }
 
 func init() {
